@@ -105,6 +105,10 @@ local.settings.json
 
 # Prisma
 prisma/migrations/dev.db*
+prisma/migrations/
+prisma/dev.db*
+*.db
+*.sqlite
 
 # Temporary files
 *.tmp
