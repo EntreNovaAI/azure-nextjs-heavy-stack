@@ -2,8 +2,10 @@ import NextAuth from "next-auth"
 import GitHub from "next-auth/providers/github"
 import Credentials from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
+
 import { prisma } from "@/lib/prisma"
 
+// Configure NextAuth with proper v5 syntax
 const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
@@ -16,4 +18,5 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET
 })
 
-export const { GET, POST } = handler
+// Export handlers for App Router (NextAuth v5)
+export { handler as GET, handler as POST }
