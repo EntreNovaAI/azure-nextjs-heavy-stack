@@ -40,22 +40,34 @@ This template provides a complete, scalable foundation with:
 git clone <your-repo-url>
 cd azure-next-auth-stack
 cp .env.example .env.local
+echo "DATABASE_URL=your_connection_string" > .env  # Prisma needs this
 ```
 
 ### 2. Configure Environment
-Edit `.env.local` and fill in:
+**Edit `.env.local`** with:
 - `NEXTAUTH_SECRET` (generate: `openssl rand -base64 32`)
-- Database URL (for local dev)
+- `DATABASE_URL` - PostgreSQL connection string
+- `NEXTAUTH_URL` - Your devtunnel URL (see setup guide)
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (from Google Cloud Console)
 - Stripe keys (test mode)
 - AI provider settings
 
-### 3. Install and Run
+**Edit `.env`** with:
+- `DATABASE_URL` only (Prisma reads this file)
+
+**Note**: You'll need to set up Google OAuth and Azure Dev Tunnels for authentication to work. See the detailed [setup guide](docs/setup_guide.md).
+
+### 3. Database Setup and Run
 ```bash
 pnpm install
+npx prisma generate
+npx prisma migrate dev --name init  # Set up database
 pnpm dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000)
+
+**For authentication to work**: Follow the [setup guide](docs/setup_guide.md) to configure Google OAuth and Azure Dev Tunnels.
 
 ## 📖 Documentation
 

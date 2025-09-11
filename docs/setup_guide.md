@@ -3,28 +3,86 @@
 This guide takes you from zero → local dev → Azure deploy.
 
 ## 0) Prereqs
+
 - Node 20+, pnpm: `corepack enable && corepack prepare pnpm@latest --activate`
 - Azure CLI: `az login`, correct subscription selected.
 - Stripe account, GitHub account.
 - (Optional) Azure OpenAI access.
 
 ## 1) Clone and configure
+
+### Environment Setup
+
 ```bash
 cp .env.example .env.local
+```
 
-Fill:
+**Important**: You'll also need to create a `.env` file specifically for Prisma (it only needs DATABASE_URL):
 
-. NEXTAUTH_SECRET (generate one: openssl rand -base64 32)
-. For local dev, set DATABASE_URL to a local Postgres or leave empty for now.
-. Stripe keys (test mode).
-. Set AI provider: AI_PROVIDER=azure and enter Azure OpenAI keys, or switch to openai.
+```bash
+# Create .env file with just DATABASE_URL for Prisma
+echo "DATABASE_URL=your_database_connection_string_here" > .env
+```
 
-## 2) Install & run locally
-pnpm i
+**Fill `.env.local` with:**
+
+- `NEXTAUTH_SECRET` (generate one: `openssl rand -base64 32`)
+- `NEXTAUTH_URL` - Set to your devtunnel URL for local development (see step 7)
+- `DATABASE_URL` - PostgreSQL connection string for your local database
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (see Google OAuth setup below)
+- Stripe keys (test mode) - optional
+- AI provider: `AI_PROVIDER=azure` and enter Azure OpenAI keys, or switch to `openai` - optional
+
+**Fill `.env` with:**
+
+- `DATABASE_URL` only (Prisma reads this file for database operations)
+
+### Google OAuth Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable the Google People API
+4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
+5. Set application type to "Web application"
+6. Add authorized redirect URIs:
+   - `http://localhost:3000/api/auth/callback/google` (for local dev)
+   - `https://your-devtunnel-url.devtunnels.ms/api/auth/callback/google` (for webhook testing)
+7. Copy the Client ID and Client Secret to your `.env.local` files
+
+## 2) Database Setup (Local Development)
+
+### Option A: Local PostgreSQL
+
+1. Install PostgreSQL locally
+2. Create a database: `createdb your_app_db`
+3. Set `DATABASE_URL` in both `.env` and `.env.local`:
+   ```
+
+   DATABASE_URL="postgresql://username:password@localhost:5432/your_app_db"
+   ```
+
+### Initialize Database
+
+```bash
+# Install dependencies
+pnpm install
+
+# Generate Prisma client
+npx prisma generate
+
+# Run database migrations
+npx prisma migrate dev --name init
+```
+
+## 3) Install & run locally
+
+```bash
 pnpm dev
-
+```
 
 Visit http://localhost:3000
+
+**Note**: Authentication won't work fully until you set up devtunnels (step 7) and configure Google OAuth properly.
 
 ## 3) Create Azure infra
 export RG=enova-rg
@@ -72,13 +130,31 @@ Temporarily export your prod DATABASE_URL locally:
 export DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require"
 bash scripts/prisma_migrate.sh
 
-## 7) Dev Tunnels for local webhooks
-az dev-tunnel create --name enova --port 3000 --allow-anonymous
-az dev-tunnel host --port 3000
+## 7) Dev Tunnels for local webhooks and OAuth
 
+**Important**: For Google OAuth to work in local development, you need a public URL:
 
-Use the public URL for Stripe webhooks, e.g.
-https://enova-12345.devtunnels.ms/api/webhooks/stripe
+```bash
+# Create a dev tunnel with anonymous access. THis is often set to your default
+devtunnel create enova -a
+
+# Add a port to your default dev tunnel 
+devtunnel port create -p 3000
+
+# Begin hosting your tunnel
+devtunnel host
+```
+
+This will give you a public URL like: `https://randomstring23824732.devtunnels.ms`
+
+**Update your environment files:**
+1. Set `NEXTAUTH_URL=https://your-tunnel-url.devtunnels.ms` in both `.env` and `.env.local`
+2. Add this URL to your Google OAuth authorized redirect URIs:
+   - `https://your-tunnel-url.devtunnels.ms/api/auth/callback/google`
+
+**Uses:**
+- Google OAuth callbacks: `https://your-tunnel-url.devtunnels.ms/api/auth/callback/google`
+- Stripe webhooks: `https://your-tunnel-url.devtunnels.ms/api/webhooks/stripe`
 
 ## 8) GitHub → build → deploy
 Create a new GitHub repo and push.
