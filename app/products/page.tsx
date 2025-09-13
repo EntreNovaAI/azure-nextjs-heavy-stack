@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { ProductCard } from '@/app/_components/product-card'
 import { UserInfo } from '@/app/_components/user-info'
 import { LoadingState, AuthRequiredState, AccessNotice } from '@/app/_components/page-states'
-import { products } from '@/data/products'
+import { products } from '@/app/data/products'
 
 /**
  * Protected Products Page
