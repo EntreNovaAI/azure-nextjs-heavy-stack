@@ -6,3 +6,6 @@
 export { Navigation } from './navigation'
 export { LoadingState, AuthRequiredState, AccessNotice } from './page-states'
 export { ProductCard } from './product-card'
+export { FeatureCard } from './feature-card'
+export { FeaturesSection } from './features-section'
+export { HeroSection, homeHeroContent, productsHeroContent, type HeroContent } from './hero-section'

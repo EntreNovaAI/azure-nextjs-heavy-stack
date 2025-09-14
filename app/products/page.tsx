@@ -2,10 +2,9 @@
 
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
-import { ProductCard } from '@/app/_components/product-card'
-import { UserInfo } from '@/app/_components/user-info'
-import { LoadingState, AuthRequiredState, AccessNotice } from '@/app/_components/page-states'
-import { Calculator } from '@/app/_components/calculator'
+import { ProductCard, LoadingState, AuthRequiredState, AccessNotice } from '@/app/_components/ui'
+import { UserInfo } from '@/app/_components/auth'
+import { Calculator } from '@/app/_components/features'
 import { products } from '@/app/_data/products'
 
 /**
