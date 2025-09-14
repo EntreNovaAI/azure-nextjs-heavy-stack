@@ -1,4 +1,5 @@
 import * as React from 'react';
+import axios from 'axios';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   EmbeddedCheckoutProvider,
@@ -18,24 +19,11 @@ export default function StripeCheckout() {
       const selectedProduct = sessionStorage.getItem('selectedProduct') || 'basic'
 
       // Create a Checkout Session using our Next.js API route
-      const response = await fetch("/api/stripe/create-checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: selectedProduct // Pass the selected product ID
-        })
+      const response = await axios.post("/api/stripe/create-checkout", {
+        id: selectedProduct // Pass the selected product ID
       });
 
-      // Check if response is ok
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Error:', errorData);
-        throw new Error(errorData.error || 'Failed to create checkout session');
-      }
-      
-      const data = await response.json();
+      const data = response.data;
       console.log('API Response:', data);
       
       // Ensure we have a client secret
@@ -46,6 +34,11 @@ export default function StripeCheckout() {
       return data.clientSecret;
     } catch (error) {
       console.error('Error in fetchClientSecret:', error);
+      if (axios.isAxiosError(error)) {
+        const errorData = error.response?.data;
+        console.error('API Error:', errorData);
+        throw new Error(errorData?.error || 'Failed to create checkout session');
+      }
       throw error; // Re-throw to let Stripe handle it
     }
   }, []);

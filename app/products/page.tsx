@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
+import axios from 'axios'
 import { ProductCard, LoadingState, AuthRequiredState, AccessNotice } from '@/app/_components/ui'
 import { UserInfo } from '@/app/_components/auth'
 import { Calculator } from '@/app/_components/features'
@@ -31,17 +32,8 @@ export default function ProductsPage() {
    */
   const fetchUserDetails = async () => {
     try {
-      const response = await fetch('/api/user', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const userData = await response.json()
-        setUser(userData)
-      }
+      const response = await axios.get('/api/user')
+      setUser(response.data)
     } catch (error) {
       console.error('Error fetching user details:', error)
     } finally {

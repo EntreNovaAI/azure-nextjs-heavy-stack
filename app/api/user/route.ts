@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { prisma } from "@/app/_lib/prisma"
+import { extractUserUpdateData } from "@/app/_lib/stripe-utils"
 
 /**
  * User API Route
@@ -91,7 +92,29 @@ export async function PATCH(req: NextRequest) {
 
     // Parse request body
     const body = await req.json()
-    const { accessLevel, stripeCustomerId } = body
+    
+    let accessLevel: string
+    let stripeCustomerId: string | null = null
+    
+    // Check if we're receiving raw Stripe session data or processed data
+    if (body.stripeSessionData) {
+      // Process Stripe session data server-side
+      const basicPriceId = process.env.STRIPE_SUBSCRIPTION_ID_BASIC
+      const premiumPriceId = process.env.STRIPE_SUBSCRIPTION_ID_PREMIUM
+      
+      const updateData = extractUserUpdateData(
+        body.stripeSessionData,
+        basicPriceId,
+        premiumPriceId
+      )
+      
+      accessLevel = updateData.accessLevel
+      stripeCustomerId = updateData.stripeCustomerId
+    } else {
+      // Legacy format - direct accessLevel and stripeCustomerId
+      accessLevel = body.accessLevel
+      stripeCustomerId = body.stripeCustomerId
+    }
 
     // Validate access level
     if (!['free', 'basic', 'premium'].includes(accessLevel)) {
@@ -102,14 +125,14 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Prepare update data - only include stripeCustomerId if provided
-    const updateData: any = {
+    const updateDataForDb: any = {
       accessLevel: accessLevel,
       updatedAt: new Date()
     }
     
     // Add Stripe customer ID if provided (for paid subscriptions)
     if (stripeCustomerId) {
-      updateData.stripeCustomerId = stripeCustomerId
+      updateDataForDb.stripeCustomerId = stripeCustomerId
     }
 
     // Update user's access level and Stripe customer ID
@@ -117,7 +140,7 @@ export async function PATCH(req: NextRequest) {
       where: {
         email: session.user.email
       },
-      data: updateData,
+      data: updateDataForDb,
       select: {
         id: true,
         name: true,

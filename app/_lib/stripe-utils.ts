@@ -7,21 +7,33 @@
 /**
  * Determines the access level based on Stripe line items
  * Maps Stripe price IDs to our internal access levels
+ * @param lineItems - Array of Stripe line items
+ * @param basicPriceId - The Stripe price ID for basic subscription
+ * @param premiumPriceId - The Stripe price ID for premium subscription
  */
-export function determineAccessLevelFromLineItems(lineItems: any[]): string {
-  // Get the Stripe price IDs from environment variables
-  const basicPriceId = process.env.STRIPE_SUBSCRIPTION_ID_BASIC
-  const premiumPriceId = process.env.STRIPE_SUBSCRIPTION_ID_PREMIUM
+export function determineAccessLevelFromLineItems(
+  lineItems: any[], 
+  basicPriceId: string | undefined, 
+  premiumPriceId: string | undefined
+): string {
+  // Early return if price IDs are missing
+  if (!basicPriceId || !premiumPriceId) {
+    console.error('Missing Stripe subscription price IDs - check server configuration')
+    return 'free' // Default to free if configuration is missing
+  }
   
   // Check each line item to find the matching price ID
   for (const item of lineItems) {
-    console.log('Item:', item)
+    console.log('Processing line item:', item)
     const priceId = item.price?.id
-    console.log('Premium Price ID:', premiumPriceId)
-    console.log('Basic Price ID:', basicPriceId)
+    console.log('Found price ID:', priceId)
+    
+    // Compare price IDs without logging the sensitive server-side price IDs
     if (priceId === premiumPriceId) {
+      console.log('Matched premium subscription')
       return 'premium'
     } else if (priceId === basicPriceId) {
+      console.log('Matched basic subscription')
       return 'basic'
     }
   }
@@ -45,14 +57,40 @@ export function isValidStripeCustomerId(customerId: string | null): boolean {
 /**
  * Extracts relevant user update data from Stripe session
  * Returns the data needed to update user profile in database
+ * @param sessionData - Stripe session data from get-session-status API
+ * @param basicPriceId - The Stripe price ID for basic subscription  
+ * @param premiumPriceId - The Stripe price ID for premium subscription
  */
-export function extractUserUpdateData(sessionData: any) {
-  const accessLevel = determineAccessLevelFromLineItems(sessionData.line_items || [])
+export function extractUserUpdateData(
+  sessionData: any,
+  basicPriceId?: string,
+  premiumPriceId?: string
+) {
+  console.log('=== PROCESSING STRIPE SESSION DATA ===')
+  console.log('Session data keys:', Object.keys(sessionData))
+  console.log('Customer ID type:', typeof sessionData.customer_id)
+  console.log('Customer ID value:', sessionData.customer_id)
+  console.log('Customer email:', sessionData.customer_email)
+  console.log('Line items count:', sessionData.line_items?.length || 0)
+  
+  const accessLevel = determineAccessLevelFromLineItems(
+    sessionData.line_items || [], 
+    basicPriceId, 
+    premiumPriceId
+  )
+  
+  // Extract customer ID (should now always be a string from our API)
   const stripeCustomerId = sessionData.customer_id
   
-  return {
+  const result = {
     accessLevel,
     stripeCustomerId: isValidStripeCustomerId(stripeCustomerId) ? stripeCustomerId : null,
     customerEmail: sessionData.customer_email
   }
+  
+  console.log('=== EXTRACTED USER UPDATE DATA ===')
+  console.log('Result:', result)
+  console.log('=== END PROCESSING ===')
+  
+  return result
 }

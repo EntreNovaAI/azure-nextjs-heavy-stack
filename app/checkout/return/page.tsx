@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import axios from 'axios'
 import { StripeCheckout } from '@/app/_components/payment'
-import { extractUserUpdateData } from '@/app/_lib/stripe-utils'
-
 // Define types for session status response
 interface SessionStatus {
   // Basic status info
@@ -38,32 +37,25 @@ interface SessionStatus {
 /**
  * Updates user profile with new access level and Stripe customer ID
  * Called after successful payment to upgrade user's subscription
+ * Now passes raw Stripe session data to server for processing
  */
 async function updateUserProfile(sessionData: SessionStatus) {
-  const updateData = extractUserUpdateData(sessionData)
+  console.log('Updating user profile with Stripe session data:', sessionData)
   
-  console.log('Updating user profile with:', updateData)
-  
-  const response = await fetch('/api/user', {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      accessLevel: updateData.accessLevel,
-      stripeCustomerId: updateData.stripeCustomerId
+  try {
+    const response = await axios.patch('/api/user', {
+      stripeSessionData: sessionData // Pass raw session data to server for processing
     })
-  })
-  
-  if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(`Failed to update user profile: ${errorData.error}`)
+    
+    console.log('User profile updated successfully:', response.data)
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.error || error.message
+      throw new Error(`Failed to update user profile: ${errorMessage}`)
+    }
+    throw error
   }
-  
-  const updatedUser = await response.json()
-  console.log('User profile updated successfully:', updatedUser)
-  
-  return updatedUser
 }
 
 /**
@@ -94,13 +86,8 @@ export default function CheckoutReturn() {
         setLoading(true)
         
         // Call our Next.js API route to get session status
-        const response = await fetch(`/api/stripe/get-session-status?session_id=${session_id}`)
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch session status')
-        }
-        
-        const data = await response.json()
+        const response = await axios.get(`/api/stripe/get-session-status?session_id=${session_id}`)
+        const data = response.data
         
         // Comprehensive logging for database update planning
         console.log('=== STRIPE SESSION STATUS DATA ===')

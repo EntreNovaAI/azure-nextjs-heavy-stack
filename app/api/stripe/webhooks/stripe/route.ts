@@ -26,12 +26,16 @@ export async function POST(req: NextRequest) {
         expand: ['line_items', 'customer']
       })
       
+      // Get Stripe price IDs from environment variables
+      const basicPriceId = process.env.STRIPE_SUBSCRIPTION_ID_BASIC
+      const premiumPriceId = process.env.STRIPE_SUBSCRIPTION_ID_PREMIUM
+      
       // Extract user update data from session
       const updateData = extractUserUpdateData({
         customer_id: fullSession.customer,
         customer_email: fullSession.customer_details?.email,
         line_items: fullSession.line_items?.data || []
-      })
+      }, basicPriceId, premiumPriceId)
       
       // Update user in database if we have a valid email
       if (updateData.customerEmail && updateData.stripeCustomerId) {

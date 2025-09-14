@@ -33,14 +33,16 @@ export async function GET(req: NextRequest) {
     console.log('Full session object keys:', Object.keys(session))
     console.log('Session status:', session.status)
     console.log('Payment status:', session.payment_status)
-    console.log('Customer ID:', session.customer)
-    console.log('Subscription ID:', session.subscription)
+    console.log('Customer ID type:', typeof session.customer)
+    console.log('Customer ID value:', session.customer)
+    console.log('Subscription ID type:', typeof session.subscription)
+    console.log('Subscription ID value:', session.subscription)
     console.log('Line items:', session.line_items)
     console.log('Customer details:', session.customer_details)
     console.log('=== END STRIPE SESSION ===')
 
-    // Return comprehensive session information for database updates
-    return NextResponse.json({
+    // Prepare the response data
+    const responseData = {
       // Basic status info
       status: session.status,
       payment_status: session.payment_status,
@@ -48,10 +50,10 @@ export async function GET(req: NextRequest) {
       // Customer information
       customer_email: session.customer_details?.email || null,
       customer_name: session.customer_details?.name || null,
-      customer_id: session.customer,
+      customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id || null,
       
       // Subscription information
-      subscription_id: session.subscription,
+      subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id || null,
       
       // Payment information
       amount_total: session.amount_total,
@@ -67,7 +69,18 @@ export async function GET(req: NextRequest) {
       
       // Full session for debugging (you can remove this in production)
       _debug_full_session: session
-    })
+    }
+
+    // Log what we're actually returning
+    console.log('=== RESPONSE DATA ===')
+    console.log('Customer ID in response:', responseData.customer_id)
+    console.log('Customer ID type:', typeof responseData.customer_id)
+    console.log('Subscription ID in response:', responseData.subscription_id)
+    console.log('Subscription ID type:', typeof responseData.subscription_id)
+    console.log('=== END RESPONSE DATA ===')
+
+    // Return comprehensive session information for database updates
+    return NextResponse.json(responseData)
 
   } catch (error) {
     console.error('Error retrieving session status:', error)
