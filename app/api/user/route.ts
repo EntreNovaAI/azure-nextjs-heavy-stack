@@ -91,7 +91,7 @@ export async function PATCH(req: NextRequest) {
 
     // Parse request body
     const body = await req.json()
-    const { accessLevel } = body
+    const { accessLevel, stripeCustomerId } = body
 
     // Validate access level
     if (!['free', 'basic', 'premium'].includes(accessLevel)) {
@@ -101,20 +101,29 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
-    // Update user's access level
+    // Prepare update data - only include stripeCustomerId if provided
+    const updateData: any = {
+      accessLevel: accessLevel,
+      updatedAt: new Date()
+    }
+    
+    // Add Stripe customer ID if provided (for paid subscriptions)
+    if (stripeCustomerId) {
+      updateData.stripeCustomerId = stripeCustomerId
+    }
+
+    // Update user's access level and Stripe customer ID
     const updatedUser = await prisma.user.update({
       where: {
         email: session.user.email
       },
-      data: {
-        accessLevel: accessLevel,
-        updatedAt: new Date()
-      },
+      data: updateData,
       select: {
         id: true,
         name: true,
         email: true,
         accessLevel: true,
+        stripeCustomerId: true,
         createdAt: true,
         updatedAt: true,
         image: true
