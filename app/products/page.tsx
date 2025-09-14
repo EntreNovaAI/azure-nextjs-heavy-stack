@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react'
 import { ProductCard } from '@/app/_components/product-card'
 import { UserInfo } from '@/app/_components/user-info'
 import { LoadingState, AuthRequiredState, AccessNotice } from '@/app/_components/page-states'
-import { products } from '@/app/data/products'
+import { Calculator } from '@/app/_components/calculator'
+import { products } from '@/app/_data/products'
 
 /**
  * Protected Products Page
@@ -59,32 +60,76 @@ export default function ProductsPage() {
     return <AuthRequiredState message="Please sign in to access our premium products." />
   }
 
+  // Get access level for display
+  const accessLevel = user?.accessLevel || 'free'
+  const accessLevelDisplay = accessLevel.charAt(0).toUpperCase() + accessLevel.slice(1)
+
   return (
     <div className="page-container">
-      <div className="products-header">
-        <h1>Premium Products</h1>
-        <p>Welcome to our exclusive product catalog!</p>
+      {/* Access Level Banner */}
+      <div className={`access-level-banner ${accessLevel}`}>
+        <div className="banner-content">
+          <div className="access-info">
+            <h2>
+              {accessLevel === 'free' && '🆓 Free Version'}
+              {accessLevel === 'basic' && '⭐ Basic Version'}
+              {accessLevel === 'premium' && '🏢 Premium Version'}
+            </h2>
+            <p>
+              {accessLevel === 'free' && 'You have access to basic calculator functions'}
+              {accessLevel === 'basic' && 'You have access to memory functions and calculation history'}
+              {accessLevel === 'premium' && 'You have access to all advanced calculator features'}
+            </p>
+          </div>
+          {accessLevel !== 'premium' && (
+            <div className="upgrade-prompt">
+              <p>Want more features?</p>
+              <a href="#upgrade-section" className="upgrade-link">
+                Upgrade Now →
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Calculator Section */}
+      <div className="calculator-section">
+        <div className="section-header">
+          <h2>Calculator Demo</h2>
+          <p>Try our calculator with features based on your current access level</p>
+        </div>
         
-        {/* Display user information */}
-        <UserInfo user={user} />
+        <Calculator accessLevel={accessLevel} />
       </div>
 
-      {/* Product Grid */}
-      <div className="products-grid">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            title={product.title}
-            description={product.description}
-            features={product.features}
-            price={product.price}
-            variant={product.variant}
-          />
-        ))}
-      </div>
+      {/* Products Section */}
+      <div id="upgrade-section" className="products-section">
+        <div className="products-header">
+          <h2>Upgrade Your Plan</h2>
+          <p>Unlock more calculator features with our premium plans</p>
+          
+          {/* Display user information */}
+          <UserInfo user={user} />
+        </div>
 
-      {/* Access Level Notice */}
-      <AccessNotice accessLevel={user?.accessLevel || 'free'} />
+        {/* Product Grid */}
+        <div className="products-grid">
+          {products.map((product) => (
+            <ProductCard
+              key={product.id}
+              title={product.title}
+              description={product.description}
+              features={product.features}
+              price={product.price}
+              variant={product.variant}
+              productId={product.id}
+            />
+          ))}
+        </div>
+
+        {/* Access Level Notice */}
+        <AccessNotice accessLevel={accessLevel} />
+      </div>
     </div>
   )
 }
