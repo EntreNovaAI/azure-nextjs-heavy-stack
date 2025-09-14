@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { LoginButton } from './login-button'
+import { LoginButton } from '../auth'
 
 /**
  * Navigation Component
