@@ -4,7 +4,7 @@ export interface Product {
   description: string
   features: string[]
   price: string
-  variant: 'default' | 'premium' | 'enterprise'
+  variant: 'default' | 'basic' | 'premium'
 }
 
 /**
@@ -19,8 +19,7 @@ export const products: Product[] = [
     description: 'Perfect for beginners getting started with our platform.',
     features: [
       'Basic features',
-      'Email support',
-      '5GB storage'
+      'Email support'
     ],
     price: 'Free',
     variant: 'default'
@@ -32,11 +31,10 @@ export const products: Product[] = [
     features: [
       'All Free features',
       'Priority support',
-      '50GB storage',
       'Advanced analytics'
     ],
     price: '$9.99/month',
-    variant: 'premium'
+    variant: 'basic'
   },
   {
     id: 'premium',
@@ -44,12 +42,10 @@ export const products: Product[] = [
     description: 'Complete solution for large organizations.',
     features: [
       'All Basic features',
-      '24/7 phone support',
-      'Unlimited storage',
       'Custom integrations',
       'Dedicated account manager'
     ],
     price: '$29.99/month',
-    variant: 'enterprise'
+    variant: 'premium'
   }
 ]

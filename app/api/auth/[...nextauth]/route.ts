@@ -1,11 +1,12 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
+import { NextAuthOptions } from "next-auth"
 
-import { prisma } from "@/lib/prisma"
+import { prisma } from "@/app/_lib/prisma"
 
-// Configure NextAuth with v4 syntax
-const handler = NextAuth({
+// Export auth options for use in other API routes
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { 
     strategy: "jwt" 
@@ -80,7 +81,10 @@ const handler = NextAuth({
       return true
     }
   }
-})
+}
+
+// Configure NextAuth with the options
+const handler = NextAuth(authOptions)
 
 // Export handlers for App Router (NextAuth v4 compatible)
 export { handler as GET, handler as POST }

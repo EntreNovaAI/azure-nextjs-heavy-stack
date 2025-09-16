@@ -7,16 +7,17 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  name          String?
-  email         String?  @unique
-  emailVerified DateTime?
-  image         String?
-  accessLevel   String   @default("free") // free, basic, premium
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now()) @updatedAt
-  accounts      Account[]
-  sessions      Session[]
+  id               String   @id @default(cuid())
+  name             String?
+  email            String?  @unique
+  emailVerified    DateTime?
+  image            String?
+  accessLevel      String   @default("free") // free, basic, premium
+  stripeCustomerId String?  // Stripe customer ID for paid users
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+  accounts         Account[]
+  sessions         Session[]
 }
 
 model Account {

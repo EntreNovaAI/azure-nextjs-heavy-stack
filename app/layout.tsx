@@ -1,5 +1,5 @@
-import { AuthProvider } from '@/app/_components/auth-provider'
-import { Navigation } from '@/app/_components/navigation'
+import { AuthProvider } from '@/app/_components/auth'
+import { Navigation } from '@/app/_components/ui'
 import './globals.css'
 
 export const metadata = {
