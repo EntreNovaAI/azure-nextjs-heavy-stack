@@ -1,7 +1,7 @@
 import Stripe from "stripe"
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/app/_lib/prisma"
-import { extractUserUpdateData } from "@/app/_lib/stripe-utils"
+import { prisma } from "@/app/_lib/prisma/prisma"
+import { extractUserUpdateData } from "@/app/_lib/stripe/stripe-utils"
 
 export const runtime = "nodejs"
 
@@ -167,6 +167,156 @@ export async function POST(req: NextRequest) {
             await updateUserAccessLevel(user.id, 'free')
             console.log('User downgraded to free due to subscription cancellation')
           }
+        }
+        break
+      }
+      
+      case "customer.created": {
+        const customer = event.data.object as Stripe.Customer
+        
+        console.log('Customer created:', customer.id)
+        console.log('Customer email:', customer.email)
+        console.log('Customer name:', customer.name)
+        
+        // Only create user if we have an email and they don't already exist
+        if (customer.email) {
+          const existingUser = await prisma.user.findUnique({
+            where: { email: customer.email }
+          })
+          
+          if (!existingUser) {
+            // Create new user with free access level (compatible with user API route)
+            const newUser = await prisma.user.create({
+              data: {
+                email: customer.email,
+                name: customer.name || null,
+                stripeCustomerId: customer.id,
+                accessLevel: 'free', // Default access level - same as user API
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                accessLevel: true,
+                stripeCustomerId: true,
+                createdAt: true,
+                updatedAt: true
+              }
+            })
+            console.log('New user created from Stripe customer:', newUser)
+          } else {
+            // Link Stripe customer ID to existing user if not already linked
+            if (!existingUser.stripeCustomerId) {
+              const updatedUser = await prisma.user.update({
+                where: { id: existingUser.id },
+                data: { 
+                  stripeCustomerId: customer.id,
+                  updatedAt: new Date()
+                }
+              })
+              console.log('Linked Stripe customer ID to existing user:', updatedUser.email)
+            } else {
+              console.log('User already exists with Stripe customer ID:', existingUser.email)
+            }
+          }
+        } else {
+          console.log('Customer created without email - skipping user creation')
+        }
+        break
+      }
+      
+      case "customer.updated": {
+        const customer = event.data.object as Stripe.Customer
+        
+        console.log('Customer updated:', customer.id)
+        console.log('Customer email:', customer.email)
+        console.log('Customer name:', customer.name)
+        
+        // Find user by Stripe customer ID
+        const user = await findUserByStripeId(customer.id, customer.email)
+        
+        if (user) {
+          // Prepare update data - only update fields that have changed
+          const updateData: any = {
+            updatedAt: new Date()
+          }
+          
+          // Update name if it's different and provided
+          if (customer.name && customer.name !== user.name) {
+            updateData.name = customer.name
+          }
+          
+          // IMPORTANT: Do NOT update email automatically to prevent login issues
+          // Users may sign up with one email but checkout with another
+          // Only update email if the user's current email is null/empty (new user scenario)
+          if (customer.email && customer.email !== user.email) {
+            if (!user.email || user.email.trim() === '') {
+              // Only update if user has no email set (shouldn't happen but safety check)
+              updateData.email = customer.email
+              console.log('Updating empty user email with customer email:', customer.email)
+            } else {
+              // Log the difference but don't update to preserve login capability
+              console.log('Email mismatch detected - preserving user login email:', {
+                userEmail: user.email,
+                customerEmail: customer.email,
+                message: 'User may have used different email for checkout'
+              })
+            }
+          }
+          
+          // Only update if there are actual changes
+          if (Object.keys(updateData).length > 1) { // More than just updatedAt
+            const updatedUser = await prisma.user.update({
+              where: { id: user.id },
+              data: updateData,
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                accessLevel: true,
+                stripeCustomerId: true,
+                updatedAt: true
+              }
+            })
+            console.log('User updated from Stripe customer changes:', updatedUser)
+          } else {
+            console.log('No meaningful changes to update for user:', user.email)
+          }
+        } else {
+          console.log('User not found for customer update:', customer.id)
+        }
+        break
+      }
+      
+      case "customer.deleted": {
+        const customer = event.data.object as Stripe.Customer
+        
+        console.log('Customer deleted:', customer.id)
+        console.log('Customer email:', customer.email)
+        
+        // Find user by Stripe customer ID
+        const user = await findUserByStripeId(customer.id)
+        
+        if (user) {
+          const updatedUser = await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              stripeCustomerId: null, // Remove Stripe association
+              accessLevel: 'free', // Downgrade to free
+              updatedAt: new Date()
+            },
+            select: {
+              id: true,
+              email: true,
+              accessLevel: true,
+              stripeCustomerId: true
+            }
+          })
+          console.log('User Stripe association removed and downgraded:', updatedUser)
+        } else {
+          console.log('User not found for customer deletion:', customer.id)
         }
         break
       }

@@ -1,11 +1,9 @@
 # Some TODOs
 
-## Issues
+## Tests
 
-- DB is not updating on purchase
+### Unit Tests
 
-## Customer Lifecycle refinement.
+### E2E Tests
 
-### Brainstorm
-
-- How should we manage customers? Keep them in our db if free then add them as customers to stripe when they upgrade, then establish a webhook that we can then upgrade their account with.
+### Integration Tests
