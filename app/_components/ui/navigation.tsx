@@ -26,11 +26,16 @@ export function Navigation() {
             Home
           </Link>
           
-          {/* Show protected product link only when authenticated */}
+          {/* Show protected links only when authenticated */}
           {session && (
-            <Link href="/products" className="nav-link">
-              Products
-            </Link>
+            <>
+              <Link href="/products" className="nav-link">
+                Products
+              </Link>
+              <Link href="/profile" className="nav-link">
+                Profile
+              </Link>
+            </>
           )}
         </div>
 
