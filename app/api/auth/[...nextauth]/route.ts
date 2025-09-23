@@ -3,7 +3,7 @@ import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { NextAuthOptions } from "next-auth"
 
-import { prisma } from "@/app/_lib/prisma"
+import { prisma } from "@/app/_lib/prisma/prisma"
 
 // Export auth options for use in other API routes
 export const authOptions: NextAuthOptions = {

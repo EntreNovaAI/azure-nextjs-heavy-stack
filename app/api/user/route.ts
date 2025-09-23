@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
-import { prisma } from "@/app/_lib/prisma"
-import { extractUserUpdateData } from "@/app/_lib/stripe-utils"
+import { prisma } from "@/app/_lib/prisma/prisma"
+import { extractUserUpdateData } from "@/app/_lib/stripe/stripe-utils"
 
 /**
  * User API Route
