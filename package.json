@@ -26,7 +26,6 @@
     "@azure/identity": "^4.3.0",
     "@azure/storage-blob": "^12.18.0",
     "@azure/web-pubsub": "^1.2.0",
-    "@prisma/client": "^5.19.0",
     "@stripe/react-stripe-js": "^4.0.2",
     "@stripe/stripe-js": "^7.9.0",
     "axios": "^1.12.2",
@@ -49,7 +48,6 @@
     "@vitest/coverage-v8": "^2.1.1",
     "@vitest/ui": "^2.1.1",
     "jsdom": "^25.0.1",
-    "prisma": "^5.19.0",
     "typescript": "^5.6.2",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^2.1.1"
