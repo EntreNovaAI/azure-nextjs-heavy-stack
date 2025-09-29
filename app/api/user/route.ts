@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
-import { prisma } from "@/app/_lib/prisma/prisma"
+import { getUserByEmail, createUser, updateUserByEmail } from "@/app/_lib/kysely/repositories/user-repo"
 import { extractUserUpdateData } from "@/app/_lib/stripe/stripe-utils"
 
 /**
@@ -22,40 +22,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch user details from database
-    const user = await prisma.user.findUnique({
-      where: {
-        email: session.user.email
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        accessLevel: true,
-        createdAt: true,
-        updatedAt: true,
-        image: true
-      }
-    })
+    const user = await getUserByEmail(session.user.email)
 
     // If user not found in database, create them with default access level
     if (!user) {
-      const newUser = await prisma.user.create({
-        data: {
-          email: session.user.email,
-          name: session.user.name || null,
-          image: session.user.image || null,
-          accessLevel: 'free' // Default access level
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          accessLevel: true,
-          createdAt: true,
-          updatedAt: true,
-          image: true
-        }
-      })
+      const newUser = await createUser({
+        email: session.user.email,
+        name: session.user.name || null,
+        image: session.user.image || null,
+        accessLevel: 'free'
+      } as any)
 
       return NextResponse.json(newUser)
     }
@@ -136,22 +112,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Update user's access level and Stripe customer ID
-    const updatedUser = await prisma.user.update({
-      where: {
-        email: session.user.email
-      },
-      data: updateDataForDb,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        accessLevel: true,
-        stripeCustomerId: true,
-        createdAt: true,
-        updatedAt: true,
-        image: true
-      }
-    })
+    const updatedUser = await updateUserByEmail(session.user.email, updateDataForDb)
 
     return NextResponse.json(updatedUser)
 

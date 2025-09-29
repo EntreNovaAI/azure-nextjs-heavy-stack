@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth/next"
 import { redirect } from "next/navigation"
-import { prisma } from "@/app/_lib/prisma/prisma"
+import { getUserByEmail, createUser } from "@/app/_lib/kysely/repositories/user-repo"
 import { ProfileClient } from "./profile-client"
 
 /**
@@ -19,42 +19,16 @@ export default async function ProfilePage() {
   }
 
   // Fetch user data from database including Stripe information
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      image: true,
-      accessLevel: true,
-      stripeCustomerId: true,
-      createdAt: true,
-      updatedAt: true
-    }
-  })
+  const user = await getUserByEmail(session.user.email)
 
   // If user not found in database, create them with default access level
   if (!user) {
-    const newUser = await prisma.user.create({
-      data: {
-        email: session.user.email,
-        name: session.user.name || null,
-        image: session.user.image || null,
-        accessLevel: 'free'
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        accessLevel: true,
-        stripeCustomerId: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    })
+    const newUser = await createUser({
+      email: session.user.email,
+      name: session.user.name || null,
+      image: session.user.image || null,
+      accessLevel: 'free'
+    } as any)
     
     // Pass the new user data to client component
     return <ProfileClient user={newUser} />
