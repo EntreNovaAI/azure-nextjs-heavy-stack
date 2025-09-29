@@ -2,15 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '../route'
 import { getServerSession } from 'next-auth/next'
-import { getUserByEmail, updateUserById } from '@/app/_lib/kysely/repositories/user-repo'
+import { prisma } from '@/app/_lib/prisma/prisma'
 import Stripe from 'stripe'
 
 // Mock dependencies
 vi.mock('next-auth/next', () => ({
-  getServerSession: vi.fvi.mock('@/app/_lib/kysely/repositories/user-repo', () => ({
-  getUserByEmail: vi.fn(),
-  updateUserById: vi.fn()
-}))()
+  getServerSession: vi.fn()
+}))
+
+vi.mock('@/app/_lib/prisma/prisma', () => ({
+  prisma: {
+    user: {
+      findUnique: vi.fn(),
+      update: vi.fn()
     }
   }
 }))
@@ -101,8 +105,12 @@ describe('Unsubscribe API Route', () => {
       user: { email: 'test@example.com' }
     } as any)
 
-    // Mock request bod    // Mock user not found with this customer ID
-    vi.mocked(getUserByEmail).mockResolvedValue(null)/ Mock user not found with this customer ID
+    // Mock request body
+    vi.mocked(mockRequest.json).mockResolvedValue({
+      stripeCustomerId: 'cus_test123'
+    })
+
+    // Mock user not found with this customer ID
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
     const response = await POST(mockRequest)
@@ -118,13 +126,14 @@ describe('Unsubscribe API Route', () => {
       user: { email: 'test@example.com' }
     } as any)
 
-    //     // Mock user found but already on free plan
-    vi.mocked(getUserByEmail).mockResolvedValue({
-      id: '1',
-      email: 'test@example.com',
-      accessLevel: 'free',
+    // Mock request body
+    vi.mocked(mockRequest.json).mockResolvedValue({
       stripeCustomerId: 'cus_test123'
-    } as any)   id: '1',
+    })
+
+    // Mock user found but already on free plan
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: '1',
       email: 'test@example.com',
       accessLevel: 'free',
       stripeCustomerId: 'cus_test123'
@@ -155,7 +164,7 @@ describe('Unsubscribe API Route', () => {
       accessLevel: 'premium',
       stripeCustomerId: 'cus_test123'
     }
-    vi.mocked(getUserByEmail).mockResolvedValue(mockUser as any)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
 
     // Mock active subscriptions
     const mockSubscriptions = {
@@ -173,7 +182,7 @@ describe('Unsubscribe API Route', () => {
 
     // Mock user update
     const updatedUser = { ...mockUser, accessLevel: 'free' }
-    vi.mocked(updateUserById).mockResolvedValue(updatedUser as any)
+    vi.mocked(prisma.user.update).mockResolvedValue(updatedUser as any)
 
     const response = await POST(mockRequest)
     const data = await response.json()
@@ -184,11 +193,13 @@ describe('Unsubscribe API Route', () => {
     expect(data.newAccessLevel).toBe('free')
 
     // Verify Stripe calls
-    expect(mockStrip    // Verify database update
-    expect(updateUserById).toHaveBeenCalledWith('1', {
-      accessLevel: 'free',
-      updatedAt: expect.any(Date)
-    }) update
+    expect(mockStripe.subscriptions.list).toHaveBeenCalledWith({
+      customer: 'cus_test123',
+      status: 'active'
+    })
+    expect(mockStripe.subscriptions.update).toHaveBeenCalledTimes(2)
+
+    // Verify database update
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: '1' },
       data: { 
@@ -216,14 +227,14 @@ describe('Unsubscribe API Route', () => {
       accessLevel: 'basic',
       stripeCustomerId: 'cus_test123'
     }
-    vi.mocked(getUserByEmail).mockResolvedValue(mockUser as any)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
 
     // Mock no active subscriptions
     mockStripe.subscriptions.list.mockResolvedValue({ data: [] })
 
     // Mock user update
     const updatedUser = { ...mockUser, accessLevel: 'free' }
-    vi.mocked(updateUserById).mockResolvedValue(updatedUser as any)
+    vi.mocked(prisma.user.update).mockResolvedValue(updatedUser as any)
 
     const response = await POST(mockRequest)
     const data = await response.json()

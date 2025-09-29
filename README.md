@@ -10,12 +10,12 @@ This template provides a complete, scalable foundation with:
 - **Next.js 14** with App Router
 - **NextAuth.js v5** for authentication
 - **TypeScript** for type safety
-- **Kysely** query builder with Azure SQL Database
+- **Prisma** ORM with PostgreSQL
 - **Tailwind CSS** (ready to add)
 
 ### Azure Services
 - **Azure Container Apps** - Serverless container hosting
-- **Azure SQL Database** - Managed database
+- **Azure Database for PostgreSQL** - Managed database
 - **Azure Key Vault** - Secure secret management
 - **Azure Blob Storage** - File storage
 - **Azure OpenAI** - AI capabilities
@@ -40,24 +40,28 @@ This template provides a complete, scalable foundation with:
 git clone <your-repo-url>
 cd azure-next-auth-stack
 cp .env.example .env.local
+echo "DATABASE_URL=your_connection_string" > .env  # Prisma needs this
 ```
 
 ### 2. Configure Environment
 **Edit `.env.local`** with:
 - `NEXTAUTH_SECRET` (generate: `openssl rand -base64 32`)
-- `MSSQL_SERVER`, `MSSQL_DATABASE`, `MSSQL_USER`, `MSSQL_PASSWORD`, `MSSQL_ENCRYPT` - Azure SQL Database connection
+- `DATABASE_URL` - PostgreSQL connection string
 - `NEXTAUTH_URL` - Your devtunnel URL (see setup guide)
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (from Google Cloud Console)
 - Stripe keys (test mode)
 - AI provider settings
+
+**Edit `.env`** with:
+- `DATABASE_URL` only (Prisma reads this file)
 
 **Note**: You'll need to set up Google OAuth and Azure Dev Tunnels for authentication to work. See the detailed [setup guide](docs/setup_guide.md).
 
 ### 3. Database Setup and Run
 ```bash
 pnpm install
-# Run Kysely migrations to set up database tables
-pnpm dlx tsx kysely/migration-script.ts
+npx prisma generate
+npx prisma migrate dev --name init  # Set up database
 pnpm dev
 ```
 
@@ -80,12 +84,12 @@ For detailed setup and deployment instructions, see [`docs/setup_guide.md`](docs
 ├── infra/                 # Infrastructure as Code
 │   ├── bicep/            # Azure Bicep templates
 │   └── github/           # GitHub Actions workflows
-├── app/_lib/              # Shared utilities
-│   ├── AI/ai.ts          # AI provider abstraction
-│   ├── kysely/           # Kysely database client and types
-│   ├── azure/storage.ts  # Azure Blob Storage
-│   └── azure/webpubsub.ts # Real-time messaging
-├── kysely/               # Database migrations
+├── lib/                   # Shared utilities
+│   ├── ai.ts             # AI provider abstraction
+│   ├── prisma.ts         # Database client
+│   ├── storage.ts        # Azure Blob Storage
+│   └── webpubsub.ts      # Real-time messaging
+├── prisma/               # Database schema and migrations
 └── scripts/              # Deployment scripts
 ```
 
@@ -94,7 +98,7 @@ For detailed setup and deployment instructions, see [`docs/setup_guide.md`](docs
 - `pnpm dev` - Start development server
 - `pnpm build` - Build for production
 - `pnpm start` - Start production server
-- `pnpm dlx tsx kysely/migration-script.ts` - Run database migrations
+- `pnpm migrate` - Run database migrations
 
 ## 🚀 Deployment
 

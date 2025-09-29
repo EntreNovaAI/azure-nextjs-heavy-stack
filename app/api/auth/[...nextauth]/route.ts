@@ -1,10 +1,13 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import { PrismaAdapter } from "@auth/prisma-adapter"
 import { NextAuthOptions } from "next-auth"
-import { getUserByEmail, updateUserById, createUser } from "@/app/_lib/kysely/repositories/user-repo"
+
+import { prisma } from "@/app/_lib/prisma/prisma"
 
 // Export auth options for use in other API routes
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   session: { 
     strategy: "jwt" 
   },
@@ -27,7 +30,9 @@ export const authOptions: NextAuthOptions = {
       if (session.user?.email) {
         try {
           // Fetch user with access level from database
-          const dbUser = await getUserByEmail(session.user.email)
+          const dbUser = await prisma.user.findUnique({
+            where: { email: session.user.email }
+          })
           
           if (dbUser) {
             // Add access level to session with proper typing
@@ -55,21 +60,18 @@ export const authOptions: NextAuthOptions = {
       try {
         if (account?.provider === 'google' && user?.email) {
           // Check if user exists and has access level
-          const existingUser = await getUserByEmail(user.email)
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email }
+          })
           
           // If user exists but doesn't have access level, update them
           if (existingUser && !existingUser.accessLevel) {
-            await updateUserById(existingUser.id, { accessLevel: 'free' })
-          }
-
-          // If user does not exist, create a minimal record
-          if (!existingUser) {
-            await createUser({
-              email: user.email,
-              name: user.name || null,
-              image: user.image || null,
-              accessLevel: 'free'
-            } as any)
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { 
+                accessLevel: 'free' // Set default access level
+              }
+            })
           }
         }
       } catch (error) {
