@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
 import ProfilePage from '../page'
-import { getUserByEmail, createUser } from '@/app/_lib/kysely/repositories/user-repo'
+import { prisma } from '@/app/_lib/prisma/prisma'
 
 // Mock dependencies
 vi.mock('next-auth/next', () => ({
@@ -11,10 +11,14 @@ vi.mock('next-auth/next', () => ({
 }))
 
 vi.mock('next/navigation', () => ({
-  redirect: vi.mock('@/app/_lib/kysely/repositories/user-repo', () => ({
-  getUserByEmail: vi.fn(),
-  createUser: vi.fn()
-}))i.fn()
+  redirect: vi.fn()
+}))
+
+vi.mock('@/app/_lib/prisma/prisma', () => ({
+  prisma: {
+    user: {
+      findUnique: vi.fn(),
+      create: vi.fn()
     }
   }
 }))
@@ -67,9 +71,24 @@ describe('Profile Page', () => {
     }
 
     // Mock authenticated session
-    vi.mocked(getServerSession).mockResolve    // Mock user found in database
-    vi.mocked(getUserByEmail).mockResolvedValue(mockUser)base
-    vi.mocked(prisma.user.findUnique).mo    expect(getUserByEmail).toHaveBeenCalledWith('test@example.com')stomerId: true,
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { email: 'test@example.com' }
+    } as any)
+
+    // Mock user found in database
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser)
+
+    const result = await ProfilePage()
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { email: 'test@example.com' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        accessLevel: true,
+        stripeCustomerId: true,
         createdAt: true,
         updatedAt: true
       }
@@ -99,15 +118,31 @@ describe('Profile Page', () => {
     // Mock authenticated session
     vi.mocked(getServerSession).mockResolvedValue({
       user: { 
-        email: 'new@example.com    // Mock user not found, then created
-    vi.mocked(getUserByEmail).mockResolvedValue(null)
-    vi.mocked(createUser).mockResolvedValue(mockNewUser)ser.findUnique).mockResolvedValue(null)
-    vi.m    expect(createUser).toHaveBeenCalledWith({
-      email: 'new@example.com',
-      name: 'New User',
-      image: 'https://example.com/new.jpg',
-      accessLevel: 'free'
-    })accessLevel: true,
+        email: 'new@example.com',
+        name: 'New User',
+        image: 'https://example.com/new.jpg'
+      }
+    } as any)
+
+    // Mock user not found, then created
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.user.create).mockResolvedValue(mockNewUser)
+
+    const result = await ProfilePage()
+
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: {
+        email: 'new@example.com',
+        name: 'New User',
+        image: 'https://example.com/new.jpg',
+        accessLevel: 'free'
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        accessLevel: true,
         stripeCustomerId: true,
         createdAt: true,
         updatedAt: true

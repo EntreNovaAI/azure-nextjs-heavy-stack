@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import Stripe from "stripe"
-import { getUserByEmail, updateUserById } from "@/app/_lib/kysely/repositories/user-repo"
+import { prisma } from "@/app/_lib/prisma/prisma"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-08-27.basil"
@@ -38,13 +38,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the customer ID belongs to the authenticated user
-    const user = await getUserByEmail(session.user.email)
-    if (!user || user.stripeCustomerId !== stripeCustomerId) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Customer ID does not match authenticated user' },
-        { status: 403 }
-      )
-    }
+    const user = await prisma.user.findUnique({
+      where: { 
+        email: session.user.email,
+        stripeCustomerId: stripeCustomerId 
+      }
+    })
 
     if (!user) {
       return NextResponse.json(
@@ -98,7 +97,13 @@ export async function POST(req: NextRequest) {
     // Update user's access level to free in database
     // Note: The webhook will also handle this when the subscription actually ends
     // But we update it here for immediate UI feedback
-    const updatedUser = await updateUserById(user.id, { accessLevel: 'free' })
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { 
+        accessLevel: 'free',
+        updatedAt: new Date()
+      }
+    })
 
     console.log('User updated to free plan:', updatedUser.email)
 
